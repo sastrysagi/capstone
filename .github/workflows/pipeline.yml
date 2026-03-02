@@ -1,3 +1,9 @@
+# Write .github/workflows/pipeline.yml (Python-script based, no notebooks)
+import os
+
+workflow_path = os.path.join(".github", "workflows", "pipeline.yml")
+
+workflow_content = r"""
 name: capstone3-ml-pipeline
 
 on:
@@ -19,7 +25,7 @@ jobs:
       HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -30,21 +36,30 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -U notebook nbconvert papermill
-          pip install -U pandas numpy scikit-learn joblib matplotlib
-          pip install -U huggingface_hub datasets streamlit
+          pip install -r deployment/requirements.txt
+          pip install pandas numpy scikit-learn joblib matplotlib seaborn
+          pip install huggingface_hub datasets
 
-      - name: Execute Final Report notebook
+      - name: Run Training Script
         run: |
-          mkdir -p outputs
-          papermill notebooks/Final_Report.ipynb outputs/Final_Report_executed.ipynb
+          python scripts/train.py
 
-      - name: Upload artifacts to Hugging Face (dataset/model/space)
+      - name: Upload Artifacts to Hugging Face
         run: |
           python scripts/push_to_hf.py
 
-      - name: Upload executed notebook as workflow artifact (proof)
+      - name: Upload Logs (Proof)
         uses: actions/upload-artifact@v4
         with:
-          name: executed-notebook
-          path: outputs/Final_Report_executed.ipynb
+          name: pipeline-logs
+          path: |
+            data/
+            models/
+"""
+
+os.makedirs(os.path.dirname(workflow_path), exist_ok=True)
+
+with open(workflow_path, "w", encoding="utf-8") as f:
+    f.write(workflow_content.strip() + "\n")
+
+print("✅ Wrote:", workflow_path)
