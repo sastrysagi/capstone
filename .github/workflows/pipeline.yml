@@ -19,7 +19,7 @@ jobs:
       HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -30,22 +30,21 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r deployment/requirements.txt
-          pip install pandas numpy scikit-learn joblib matplotlib seaborn
-          pip install huggingface_hub datasets
+          pip install -U notebook nbconvert papermill
+          pip install -U pandas numpy scikit-learn joblib matplotlib
+          pip install -U huggingface_hub datasets streamlit
 
-      - name: Run Training Script
+      - name: Execute Final Report notebook
         run: |
-          python scripts/train.py
+          mkdir -p outputs
+          papermill notebooks/Final_Report.ipynb outputs/Final_Report_executed.ipynb
 
-      - name: Upload Artifacts to Hugging Face
+      - name: Upload artifacts to Hugging Face (dataset/model/space)
         run: |
           python scripts/push_to_hf.py
 
-      - name: Upload Logs (Proof)
+      - name: Upload executed notebook as workflow artifact (proof)
         uses: actions/upload-artifact@v4
         with:
-          name: pipeline-logs
-          path: |
-            data/
-            models/
+          name: executed-notebook
+          path: outputs/Final_Report_executed.ipynb
