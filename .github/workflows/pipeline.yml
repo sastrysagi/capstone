@@ -1,0 +1,50 @@
+name: capstone3-ml-pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_DATASET_REPO: ${{ secrets.HF_DATASET_REPO }}
+      HF_MODEL_REPO: ${{ secrets.HF_MODEL_REPO }}
+      HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U notebook nbconvert papermill
+          pip install -U pandas numpy scikit-learn joblib matplotlib
+          pip install -U huggingface_hub datasets streamlit
+
+      - name: Execute Final Report notebook
+        run: |
+          mkdir -p outputs
+          papermill notebooks/Final_Report.ipynb outputs/Final_Report_executed.ipynb
+
+      - name: Upload artifacts to Hugging Face (dataset/model/space)
+        run: |
+          python scripts/push_to_hf.py
+
+      - name: Upload executed notebook as workflow artifact (proof)
+        uses: actions/upload-artifact@v4
+        with:
+          name: executed-notebook
+          path: outputs/Final_Report_executed.ipynb
